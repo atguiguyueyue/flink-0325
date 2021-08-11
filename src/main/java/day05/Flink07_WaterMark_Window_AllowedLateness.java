@@ -4,7 +4,6 @@ import bean.WaterSensor;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -18,7 +17,7 @@ import org.apache.flink.util.Collector;
 
 import java.time.Duration;
 
-public class Flink02_WaterMark_Bounded {
+public class Flink07_WaterMark_Window_AllowedLateness {
     public static void main(String[] args) throws Exception {
         //1.获取流的执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -56,7 +55,9 @@ public class Flink02_WaterMark_Bounded {
         KeyedStream<WaterSensor, String> keyedStream = waterSensorSingleOutputStreamOperator.keyBy(r->r.getId());
 
         //6.开窗 开启一个基于事件时间的滚动窗口
-        WindowedStream<WaterSensor, String, TimeWindow> window = keyedStream.window(TumblingEventTimeWindows.of(Time.seconds(5)));
+        WindowedStream<WaterSensor, String, TimeWindow> window = keyedStream.window(TumblingEventTimeWindows.of(Time.seconds(5)))
+                //TODO 允许窗口晚两秒钟关闭，允许迟到的时间为2S
+                .allowedLateness(Time.seconds(2));
 
         window.process(new ProcessWindowFunction<WaterSensor, String, String, TimeWindow>() {
                            @Override
